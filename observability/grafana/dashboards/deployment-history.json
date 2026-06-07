@@ -1,0 +1,33 @@
+{
+  "title": "Deployment History",
+  "uid": "deployment-history",
+  "version": 1,
+  "schemaVersion": 36,
+  "timezone": "utc",
+  "panels": [
+    {
+      "title": "Deployments Over Time",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": "${DS_PROMETHEUS}",
+      "targets": [{"expr": "rate(job_count_total[1d])", "legendFormat": "deployments"}]
+    },
+    {
+      "title": "CPU Resource Trends",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "datasource": "${DS_PROMETHEUS}",
+      "targets": [
+        {"expr": "container_cpu_requested_cores", "legendFormat": "requested"},
+        {"expr": "container_cpu_used_cores", "legendFormat": "actual"}
+      ]
+    },
+    {
+      "title": "Failure Reasons",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+      "datasource": "${DS_PROMETHEUS}",
+      "targets": [{"expr": "count by (failure_reason) (job_failure_reason)"}]
+    }
+  ]
+}

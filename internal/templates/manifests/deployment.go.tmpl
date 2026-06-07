@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Name}}
+  namespace: {{.Namespace}}
+  labels:
+    app: {{.Name}}
+    managed-by: deploy-api
+spec:
+  replicas: {{.Replicas}}
+  selector:
+    matchLabels:
+      app: {{.Name}}
+  template:
+    metadata:
+      labels:
+        app: {{.Name}}
+    spec:
+      serviceAccountName: {{.Name}}
+      containers:
+      - name: {{.Name}}
+        image: {{.Image}}
+        ports:
+        - containerPort: {{.ContainerPort}}
+        resources:
+          requests:
+            cpu: {{.CPURequest}}
+            memory: {{.MemoryRequest}}
+          limits:
+            cpu: {{.CPULimit}}
+            memory: {{.MemoryLimit}}

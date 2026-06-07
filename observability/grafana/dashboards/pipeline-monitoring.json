@@ -1,0 +1,37 @@
+{
+  "title": "Pipeline Monitoring",
+  "uid": "pipeline-monitoring",
+  "version": 1,
+  "schemaVersion": 36,
+  "timezone": "utc",
+  "panels": [
+    {
+      "title": "Stage Duration Breakdown",
+      "type": "barchart",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "datasource": "${DS_PROMETHEUS}",
+      "targets": [{"expr": "pipeline_stage_duration_seconds", "legendFormat": "{{stage}}"}]
+    },
+    {
+      "title": "Job Success Rate",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 8},
+      "datasource": "${DS_PROMETHEUS}",
+      "targets": [{"expr": "rate(job_count_total{status=\"completed\"}[5m]) / rate(job_count_total[5m]) * 100"}]
+    },
+    {
+      "title": "Queue Depth",
+      "type": "gauge",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 8},
+      "datasource": "${DS_PROMETHEUS}",
+      "targets": [{"expr": "asynq_queue_size"}]
+    },
+    {
+      "title": "Verification Score Distribution",
+      "type": "histogram",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "datasource": "${DS_PROMETHEUS}",
+      "targets": [{"expr": "verification_score"}]
+    }
+  ]
+}

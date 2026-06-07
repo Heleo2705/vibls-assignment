@@ -1,0 +1,215 @@
+name: deploy-api
+
+networks:
+  deploy-api:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  registry_data:
+  grafana_data:
+  k3s_data:
+  kubeconfig_data:
+
+services:
+  k3s:
+    image: rancher/k3s:v1.28.9-k3s1
+    privileged: true
+    ports:
+      - "6443:6443"
+    command:
+      - server
+      - "--tls-san=k3s"
+      - "--tls-san=127.0.0.1"
+    environment:
+      K3S_KUBECONFIG_MODE: "666"
+    volumes:
+      - k3s_data:/var/lib/rancher/k3s
+      - kubeconfig_data:/etc/rancher/k3s
+      - ./k3s-registries.yaml:/etc/rancher/k3s/registries.yaml:ro
+    networks:
+      - deploy-api
+    tmpfs:
+      - /run
+      - /var/run
+    healthcheck:
+      test: ["CMD", "kubectl", "get", "nodes", "--no-headers"]
+      interval: 10s
+      timeout: 10s
+      retries: 15
+      start_period: 45s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - deploy-api
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - deploy-api
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  registry:
+    image: registry:2
+    ports:
+      - "127.0.0.1:5050:5000"
+    environment:
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    volumes:
+      - registry_data:/var/lib/registry
+    networks:
+      - deploy-api
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: api-runtime
+    command: ["/usr/local/bin/api"]
+    ports:
+      - "8080:8080"
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      PORT: "8080"
+      POLICY_PATH: "/etc/deploy/policies/abac/authz.rego"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - deploy-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: worker-runtime
+    privileged: true
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      REDIS_ADDR: "redis:6379"
+      WORKER_CONCURRENCY: "4"
+      CONTAINER_REGISTRY: "registry:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      registry:
+        condition: service_started
+      k3s:
+        condition: service_healthy
+    volumes:
+      - kubeconfig_data:/kubeconfig:ro
+      - k3s_data:/var/lib/rancher/k3s:ro
+    networks:
+      - deploy-api
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    depends_on:
+      - api
+    networks:
+      - deploy-api
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.0.0
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki.yml:/etc/loki/loki.yml
+    command:
+      - "--config.file=/etc/loki/loki.yml"
+    networks:
+      - deploy-api
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./promtail.yml:/etc/promtail/promtail.yml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    command:
+      - "--config.file=/etc/promtail/promtail.yml"
+    depends_on:
+      - loki
+    networks:
+      - deploy-api
+    restart: unless-stopped
+
+  tempo:
+    image: grafana/tempo:2.4.0
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+    volumes:
+      - ./tempo.yml:/etc/tempo/tempo.yml
+    command:
+      - "--config.file=/etc/tempo/tempo.yml"
+    networks:
+      - deploy-api
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    networks:
+      - deploy-api
+    restart: unless-stopped

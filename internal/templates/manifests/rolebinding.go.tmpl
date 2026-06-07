@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{.Name}}-rolebinding
+  namespace: {{.Namespace}}
+  labels:
+    app: {{.Name}}
+    managed-by: deploy-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{.Name}}-role
+subjects:
+- kind: ServiceAccount
+  name: {{.Name}}
+  namespace: {{.Namespace}}

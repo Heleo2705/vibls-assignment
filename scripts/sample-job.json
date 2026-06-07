@@ -1,0 +1,13 @@
+{
+  "repository_url": "https://github.com/olliefr/docker-gs-ping",
+  "branch": "main",
+  "build_context": ".",
+  "dockerfile_path": "Dockerfile",
+  "target_namespace": "sandbox",
+  "version": "1",
+  "resource_overrides": {
+    "cpu_cores": 0.5,
+    "memory_mb": 256,
+    "replicas": 1
+  }
+}

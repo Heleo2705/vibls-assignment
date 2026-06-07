@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{.Namespace}}
+  labels:
+    app: {{.Name}}
+    managed-by: deploy-api

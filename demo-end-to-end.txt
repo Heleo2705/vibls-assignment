@@ -1,0 +1,305 @@
+==========================================================================
+ deploy-api — End-to-End Demo
+==========================================================================
+ Date:       2026-06-07T09:39:07Z
+ Go:         go version go1.26.3 darwin/arm64
+ Docker:     Docker version 28.3.3, build 980b856816
+ Compose:    Docker Compose version 2.39.4
+ Services:   api grafana k3s loki postgres prometheus promtail redis registry tempo worker 
+
+==========================================================================
+ STEP 1: Start the stack
+==========================================================================
+
+ Command:
+   docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --build
+
+
+#1 [internal] load local bake definitions
+#1 reading from stdin 986B done
+#1 DONE 0.0s
+
+#2 [worker internal] load build definition from Dockerfile
+#2 transferring dockerfile: 2.22kB done
+#2 DONE 0.0s
+
+#3 [worker internal] load metadata for docker.io/library/golang:1.26-alpine
+#3 DONE 0.0s
+
+#4 [api internal] load metadata for docker.io/library/alpine:3.20
+#4 DONE 1.8s
+
+#5 [worker internal] load metadata for docker.io/library/docker:24-dind
+#5 DONE 1.8s
+
+#6 [worker internal] load .dockerignore
+#6 transferring context:
+#6 transferring context: 2B done
+#6 DONE 0.1s
+
+#7 [worker worker-runtime 1/8] FROM docker.io/library/docker:24-dind@sha256:9b17a9f25adf17b88d0a013b4f00160754adf4b07ccbe9986664a49886c2c98e
+#7 resolve docker.io/library/docker:24-dind@sha256:9b17a9f25adf17b88d0a013b4f00160754adf4b07ccbe9986664a49886c2c98e 0.0s done
+#7 DONE 0.0s
+
+#8 [api api-runtime 1/4] FROM docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+#8 resolve docker.io/library/alpine:3.20@sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc 0.0s done
+#8 DONE 0.0s
+
+#9 [worker builder 1/7] FROM docker.io/library/golang:1.26-alpine@sha256:91eda9776261207ea25fd06b5b7fed8d397dd2c0a283e77f2ab6e91bfa71079d
+#9 resolve docker.io/library/golang:1.26-alpine@sha256:91eda9776261207ea25fd06b5b7fed8d397dd2c0a283e77f2ab6e91bfa71079d 0.0s done
+#9 DONE 0.0s
+
+#10 [worker internal] load build context
+#10 transferring context: 3.31MB 0.4s done
+#10 transferring context: 3.31MB 0.4s done
+#10 DONE 0.5s
+
+#11 [worker builder 3/7] WORKDIR /app
+#11 CACHED
+
+#12 [worker builder 4/7] COPY go.mod go.sum ./
+#12 CACHED
+
+#13 [worker builder 2/7] RUN apk add --no-cache git ca-certificates
+#13 CACHED
+
+#14 [worker builder 5/7] RUN go mod download
+#14 CACHED
+
+#15 [worker builder 6/7] COPY . .
+#15 DONE 2.4s
+
+#16 [worker builder 7/7] RUN CGO_ENABLED=0 GOOS=linux go build -o /app/api ./cmd/api &&     CGO_ENABLED=0 GOOS=linux go build -o /app/worker ./cmd/worker
+#16 DONE 48.1s
+
+#17 [worker worker-runtime 7/8] COPY docker/worker-entrypoint.sh /entrypoint.sh
+#17 CACHED
+
+#18 [worker worker-runtime 2/8] RUN apk add --no-cache ca-certificates tzdata curl &&     cp /usr/share/zoneinfo/Asia/Kolkata /etc/localtime &&     echo "Asia/Kolkata" > /etc/timezone
+#18 CACHED
+
+#19 [worker worker-runtime 3/8] RUN curl -sL -o /tmp/kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-arm64.tar.gz &&     tar -xzf /tmp/kubeconform.tar.gz -C /usr/local/bin/ kubeconform &&     rm /tmp/kubeconform.tar.gz
+#19 CACHED
+
+#20 [worker worker-runtime 4/8] RUN curl -sL -o /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.71.0/trivy_0.71.0_Linux-ARM64.tar.gz &&     tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin/ trivy &&     rm /tmp/trivy.tar.gz
+#20 CACHED
+
+#21 [worker worker-runtime 5/8] COPY --from=builder /app/worker /usr/local/bin/worker
+#21 CACHED
+
+#22 [worker worker-runtime 6/8] COPY policies/ /etc/deploy/policies/
+#22 CACHED
+
+#23 [worker worker-runtime 8/8] RUN chmod +x /entrypoint.sh
+#23 CACHED
+
+#24 [api api-runtime 3/4] COPY --from=builder /app/api /usr/local/bin/api
+#24 CACHED
+
+#25 [api api-runtime 2/4] RUN apk add --no-cache ca-certificates tzdata curl &&     cp /usr/share/zoneinfo/Asia/Kolkata /etc/localtime &&     echo "Asia/Kolkata" > /etc/timezone
+#25 CACHED
+
+#26 [api api-runtime 4/4] COPY policies/ /etc/deploy/policies/
+#26 CACHED
+
+#27 [api] exporting to image
+#27 exporting layers done
+#27 exporting manifest sha256:b34e339cd82f15be7f19ff1c8fcfe1de0152f64b0977aaacf760370932ef2c29 0.0s done
+#27 exporting config sha256:310d5867bcd5243b9f6e835e4c91d10cb06ac8640aba9d32a21e6639242a9047
+#27 exporting config sha256:310d5867bcd5243b9f6e835e4c91d10cb06ac8640aba9d32a21e6639242a9047 0.0s done
+#27 exporting attestation manifest sha256:4290dde919842b931739675bdf8ca6cb83f207d736e73577da3b094f0e7e1e0b 0.0s done
+#27 exporting manifest list sha256:6a91c658d5e7cf7c398f3d01f13784fe24b8fcff10967fdf894f72ff3e3b478b done
+#27 naming to docker.io/library/deploy-api-api:latest done
+#27 unpacking to docker.io/library/deploy-api-api:latest done
+#27 DONE 0.1s
+
+#28 [worker] exporting to image
+#28 exporting layers 0.0s done
+#28 exporting manifest sha256:01e833373daf5593220b27c70b0b0eac404a0521906d217b92e652fd8b1cae02 done
+#28 exporting config sha256:81beda1d3837a9fbe5313aa8067e70194409091bd5d6d04e7e361385a61f7e52 done
+#28 exporting attestation manifest sha256:b30f2b42a48ffb7ae832532c2d50e115a7599788e6a1d0cb554a82fb23fe531d 0.0s done
+#28 exporting manifest list sha256:951b477c39c4abde39f4d7fcc91452b48c587b48501433a75fc91f6100d63a8e done
+#28 naming to docker.io/library/deploy-api-worker:latest done
+#28 unpacking to docker.io/library/deploy-api-worker:latest 0.1s done
+#28 DONE 0.2s
+
+#29 [api] resolving provenance for metadata file
+#29 DONE 0.0s
+
+#30 [worker] resolving provenance for metadata file
+#30 DONE 0.0s
+ deploy-api-api  Built
+ deploy-api-worker  Built
+ Container deploy-api-redis-1  Running
+ Container deploy-api-k3s-1  Running
+ Container deploy-api-postgres-1  Running
+ Container deploy-api-tempo-1  Running
+ Container deploy-api-registry-1  Running
+ Container deploy-api-api-1  Recreate
+ Container deploy-api-worker-1  Recreate
+ Container deploy-api-promtail-1  Running
+ Container deploy-api-api-1  Recreated
+ Container deploy-api-prometheus-1  Running
+ Container deploy-api-grafana-1  Running
+ Container deploy-api-worker-1  Recreated
+ Container deploy-api-loki-1  Starting
+ Container deploy-api-k3s-1  Waiting
+ Container deploy-api-postgres-1  Waiting
+ Container deploy-api-postgres-1  Waiting
+ Container deploy-api-loki-1  Started
+ Container deploy-api-postgres-1  Healthy
+ Container deploy-api-postgres-1  Healthy
+ Container deploy-api-api-1  Starting
+ Container deploy-api-k3s-1  Healthy
+ Container deploy-api-worker-1  Starting
+ Container deploy-api-worker-1  Started
+ Container deploy-api-api-1  Started
+
+---
+
+==========================================================================
+ STEP 2: Submit a deployment job
+==========================================================================
+
+ Sample input (scripts/sample-job.json):
+{
+  "repository_url": "https://github.com/olliefr/docker-gs-ping",
+  "branch": "main",
+  "build_context": ".",
+  "dockerfile_path": "Dockerfile",
+  "target_namespace": "sandbox",
+  "version": "1",
+  "resource_overrides": {
+    "cpu_cores": 0.5,
+    "memory_mb": 256,
+    "replicas": 1
+  }
+}
+
+
+ Command:
+   curl -s -X POST http://localhost:8080/api/v1/jobs \
+     -H 'Authorization: Bearer admin-token' \
+     -H 'Content-Type: application/json' \
+     -d @scripts/sample-job.json
+
+{
+    "id": "4f750bb4-258f-43d5-814b-1e1893f98699",
+    "status": "QUEUED"
+}
+
+ Job ID: 4f750bb4-258f-43d5-814b-1e1893f98699
+
+==========================================================================
+ STEP 3: Poll job status through pipeline stages
+==========================================================================
+
+ [15 s] RUNNING  VERIFYING
+ [30 s] RUNNING  VERIFYING
+ [45 s] COMPLETED  HEALTH_CHECKING
+
+--- Final job details ---
+{
+    "id": "4f750bb4-258f-43d5-814b-1e1893f98699",
+    "repository_url": "https://github.com/olliefr/docker-gs-ping",
+    "branch": "main",
+    "build_context": ".",
+    "dockerfile_path": "Dockerfile",
+    "target_namespace": "sandbox",
+    "status": "COMPLETED",
+    "current_stage": "HEALTH_CHECKING",
+    "resource_overrides": {
+        "cpu_cores": 0.5,
+        "memory_mb": 256,
+        "replicas": 1
+    },
+    "created_at": "2026-06-07T15:07:52.589098+05:30",
+    "updated_at": "2026-06-07T15:08:36.699662+05:30"
+}
+
+==========================================================================
+ STEP 4: Verify 12 K8s resources in k3s
+==========================================================================
+
+ Namespace: sandbox
+
+NAME                                                            READY   STATUS    RESTARTS   AGE
+pod/app-4f750bb4-258f-43d5-814b-1e1893f98699-7df7c55f98-xwp9q   1/1     Running   0          21s
+
+NAME                                                   TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+service/app-4f750bb4-258f-43d5-814b-1e1893f98699-svc   ClusterIP   10.43.175.24   <none>        80/TCP    21s
+
+NAME                                                       READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/app-4f750bb4-258f-43d5-814b-1e1893f98699   1/1     1            1           21s
+
+NAME                                                                  DESIRED   CURRENT   READY   AGE
+replicaset.apps/app-4f750bb4-258f-43d5-814b-1e1893f98699-7df7c55f98   1         1         1       21s
+
+NAME                                                                               REFERENCE                                             TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/app-4f750bb4-258f-43d5-814b-1e1893f98699-hpa   Deployment/app-4f750bb4-258f-43d5-814b-1e1893f98699   <unknown>/80%   1         5         1          21s
+
+NAME                                                        DATA   AGE
+configmap/app-4f750bb4-258f-43d5-814b-1e1893f98699-config   0      21s
+configmap/kube-root-ca.crt                                  1      21s
+
+NAME                                                     TYPE     DATA   AGE
+secret/app-4f750bb4-258f-43d5-814b-1e1893f98699-secret   Opaque   0      21s
+
+NAME                                                                         CLASS   HOSTS           ADDRESS   PORTS   AGE
+ingress.networking.k8s.io/app-4f750bb4-258f-43d5-814b-1e1893f98699-ingress   nginx   example.local             80      21s
+
+NAME                                                                      MIN AVAILABLE   MAX UNAVAILABLE   ALLOWED DISRUPTIONS   AGE
+poddisruptionbudget.policy/app-4f750bb4-258f-43d5-814b-1e1893f98699-pdb   1               N/A               0                     21s
+
+NAME                                                                                      POD-SELECTOR                                   AGE
+networkpolicy.networking.k8s.io/app-4f750bb4-258f-43d5-814b-1e1893f98699-network-policy   app=app-4f750bb4-258f-43d5-814b-1e1893f98699   21s
+
+NAME                                                                           CREATED AT
+role.rbac.authorization.k8s.io/app-4f750bb4-258f-43d5-814b-1e1893f98699-role   2026-06-07T09:38:33Z
+
+NAME                                                                                         ROLE                                                 AGE
+rolebinding.rbac.authorization.k8s.io/app-4f750bb4-258f-43d5-814b-1e1893f98699-rolebinding   Role/app-4f750bb4-258f-43d5-814b-1e1893f98699-role   21s
+
+NAME                                                      SECRETS   AGE
+serviceaccount/default                                    0         21s
+serviceaccount/app-4f750bb4-258f-43d5-814b-1e1893f98699   0         21s
+
+==========================================================================
+ STEP 5: Worker logs (pipeline events)
+==========================================================================
+
+Docker daemon ready
+Kubeconfig ready (k3s:6443)
+Worker starting...
+{"level":"info","time":"2026-06-07T15:06:15+05:30","message":"database migrations applied"}
+{"level":"info","concurrency":4,"time":"2026-06-07T15:06:15+05:30","message":"starting worker"}
+{"level":"info","time":"2026-06-07T15:06:15+05:30","message":"Starting processing"}
+{"level":"info","job_id":"4f750bb4-258f-43d5-814b-1e1893f98699","time":"2026-06-07T15:07:52+05:30","message":"processing deploy job"}
+{"level":"info","job_id":"4f750bb4-258f-43d5-814b-1e1893f98699","repo":"https://github.com/olliefr/docker-gs-ping","branch":"main","time":"2026-06-07T15:07:52+05:30","message":"cloning repository"}
+{"level":"info","job_id":"4f750bb4-258f-43d5-814b-1e1893f98699","duration":769.930793,"time":"2026-06-07T15:07:53+05:30","message":"repository cloned"}
+{"level":"info","job_id":"4f750bb4-258f-43d5-814b-1e1893f98699","args":["build","-f","Dockerfile","-t","registry:5000/sandbox:4f750bb4-258f-43d5-814b-1e1893f98699","."],"workdir":"/tmp/workspaces/4f750bb4-258f-43d5-814b-1e1893f98699","time":"2026-06-07T15:07:53+05:30","message":"building docker image"}
+{"level":"info","job_id":"4f750bb4-258f-43d5-814b-1e1893f98699","duration":3681.518835,"time":"2026-06-07T15:07:57+05:30","message":"docker image built"}
+{"level":"info","tag":"registry:5000/sandbox:4f750bb4-258f-43d5-814b-1e1893f98699","time":"2026-06-07T15:07:57+05:30","message":"pushing docker image"}
+{"level":"info","tag":"registry:5000/sandbox:4f750bb4-258f-43d5-814b-1e1893f98699","duration":110.521042,"time":"2026-06-07T15:07:57+05:30","message":"docker image pushed"}
+{"level":"info","job_id":"4f750bb4-258f-43d5-814b-1e1893f98699","time":"2026-06-07T15:07:57+05:30","message":"generating kubernetes manifests"}
+{"level":"info","job_id":"4f750bb4-258f-43d5-814b-1e1893f98699","output_dir":"/tmp/workspaces/4f750bb4-258f-43d5-814b-1e1893f98699/manifests/4f750bb4-258f-43d5-814b-1e1893f98699","duration":4.936792,"time":"2026-06-07T15:07:57+05:30","message":"manifests generated"}
+{"level":"info","duration":1996.189501,"time":"2026-06-07T15:07:59+05:30","message":"kubeconform check passed"}
+{"level":"debug","time":"2026-06-07T15:07:59+05:30","message":"running OPA pipeline check"}
+{"level":"info","duration":3.145958,"time":"2026-06-07T15:07:59+05:30","message":"OPA pipeline check passed"}
+{"level":"debug","image":"registry:5000/sandbox:4f750bb4-258f-43d5-814b-1e1893f98699","time":"2026-06-07T15:07:59+05:30","message":"running Trivy scan"}
+{"level":"warn","vulnerabilities":1920,"duration":33795.696599,"time":"2026-06-07T15:08:33+05:30","message":"trivy scan found vulnerabilities"}
+{"level":"debug","time":"2026-06-07T15:08:33+05:30","message":"running resource bounds check"}
+{"level":"info","duration":4.288125,"time":"2026-06-07T15:08:33+05:30","message":"resource bounds check passed"}
+{"level":"info","namespace":"sandbox","time":"2026-06-07T15:08:33+05:30","message":"created namespace"}
+{"level":"info","namespace":"sandbox","dir":"/tmp/workspaces/4f750bb4-258f-43d5-814b-1e1893f98699/manifests/4f750bb4-258f-43d5-814b-1e1893f98699","time":"2026-06-07T15:08:33+05:30","message":"applying kubernetes manifests via Go client"}
+{"level":"debug","kind":"ConfigMap","name":"app-4f750bb4-258f-43d5-814b-1e1893f98699-config","namespace":"sandbox","time":"2026-06-07T15:08:33+05:30","message":"applied resource"}
+{"level":"debug","kind":"Deployment","name":"app-4f750bb4-258f-43d5-814b-1e1893f98699","namespace":"sandbox","time":"2026-06-07T15:08:33+05:30","message":"applied resource"}
+{"level":"debug","kind":"HorizontalPodAutoscaler","name":"app-4f750bb4-258f-43d5-814b-1e1893f98699-hpa","namespace":"sandbox","time":"2026-06-07T15:08:33+05:30","message":"applied resource"}
+{"level":"debug","kind":"Ingress","name":"app-4f750bb4-258f-43d5-814b-1e1893f98699-ingress","namespace":"sandbox","time":"2026-06-07T15:08:33+05:30","message":"applied resource"}
+{"level":"debug","kind":"Namespace","name":"sandbox","namespace":"sandbox","time":"2026-06-07T15:08:33+05:30","message":"applied resource"}
+{"level":"debug","kind":"NetworkPolicy","name":"app-4f750bb4-258f-43d5-814b-1e1893f98699-network-policy","namespace":"sandbox","time":"2026-06-07T15:08:33+05:30","message":"applied resource"}
+
+==========================================================================
+ END-TO-END DEMO COMPLETE
+==========================================================================
+

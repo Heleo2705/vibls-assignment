@@ -1,0 +1,12 @@
+/deploy-api
+/tmp/
+.env
+vendor/
+dist/
+*.exe
+*.test
+*.out
+.idea/
+.vscode/
+.swarm/
+.regent/
