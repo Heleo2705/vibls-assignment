@@ -27,18 +27,27 @@ CMD ["/usr/local/bin/api"]
 # worker-runtime — Docker-in-Docker image for the deploy worker
 # =============================================================================
 FROM docker:24-dind AS worker-runtime
+ARG TARGETARCH
 RUN apk add --no-cache ca-certificates tzdata curl && \
     cp /usr/share/zoneinfo/Asia/Kolkata /etc/localtime && \
     echo "Asia/Kolkata" > /etc/timezone
 ENV TZ=Asia/Kolkata
 
-# Verification tools
-RUN curl -sL -o /tmp/kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-arm64.tar.gz && \
-    tar -xzf /tmp/kubeconform.tar.gz -C /usr/local/bin/ kubeconform && \
-    rm /tmp/kubeconform.tar.gz
-RUN curl -sL -o /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.71.0/trivy_0.71.0_Linux-ARM64.tar.gz && \
+# Map TARGETARCH (lowercase) to trivy's uppercase convention
+RUN if [ "${TARGETARCH}" = "arm64" ]; then \
+      TRIVY_ARCH="ARM64"; \
+    else \
+      TRIVY_ARCH="AMD64"; \
+    fi && \
+    curl -sL -o /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.71.0/trivy_0.71.0_Linux-${TRIVY_ARCH}.tar.gz && \
     tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin/ trivy && \
     rm /tmp/trivy.tar.gz
+
+# Install kubeconform (uses lowercase arch in filename)
+RUN curl -sL -o /tmp/kubeconform.tar.gz \
+      https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-${TARGETARCH:-amd64}.tar.gz && \
+    tar -xzf /tmp/kubeconform.tar.gz -C /usr/local/bin/ kubeconform && \
+    rm /tmp/kubeconform.tar.gz
 
 COPY --from=builder /app/worker /usr/local/bin/worker
 COPY policies/ /etc/deploy/policies/
