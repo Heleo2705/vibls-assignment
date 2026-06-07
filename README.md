@@ -246,7 +246,7 @@ The analyzer is read-only — recommendations are surfaced via logs and the `GET
 
 1. **Docker Desktop required.** The compose stack relies on Docker's built-in networking (`host.docker.internal` is not used). Works on macOS with Docker Desktop 4.30+.
 
-2. **Multi-architecture Docker image.** The Dockerfile uses `ARG TARGETARCH` to select the correct kubeconform and trivy binaries. It builds on both `linux/arm64` (Apple Silicon) and `linux/amd64` (standard Linux servers). Compose passes the architecture automatically.
+2. **Multi-architecture Docker image.** The Dockerfile uses `ARG TARGETARCH` to select the correct kubeconform and trivy binaries. It builds natively on both `linux/arm64` (Apple Silicon) and `linux/amd64` (standard Linux servers). Compose passes the architecture automatically. Cross-arch builds via QEMU emulation are possible but very slow (Go compilation under emulation adds 5-10x latency).
 
 3. **k3s single-node.** The embedded k3s cluster runs as a single control-plane node. No HA, no multi-node scheduling. Adequate for dev/CI.
 

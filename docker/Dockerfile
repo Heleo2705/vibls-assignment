@@ -33,13 +33,12 @@ RUN apk add --no-cache ca-certificates tzdata curl && \
     echo "Asia/Kolkata" > /etc/timezone
 ENV TZ=Asia/Kolkata
 
-# Map TARGETARCH (lowercase) to trivy's uppercase convention
-RUN if [ "${TARGETARCH}" = "arm64" ]; then \
-      TRIVY_ARCH="ARM64"; \
-    else \
-      TRIVY_ARCH="AMD64"; \
-    fi && \
-    curl -sL -o /tmp/trivy.tar.gz https://github.com/aquasecurity/trivy/releases/download/v0.71.0/trivy_0.71.0_Linux-${TRIVY_ARCH}.tar.gz && \
+# Trivy names: ARM64="ARM64", AMD64="64bit"
+# TARGETARCH from docker buildx is lowercase.
+# Use AND-OR chains: set TRIVY_ARCH, then download, extract, clean up.
+RUN [ "${TARGETARCH:-amd64}" = "arm64" ] && TRIVY_ARCH="ARM64" || TRIVY_ARCH="64bit" && \
+    curl -sL -o /tmp/trivy.tar.gz \
+      https://github.com/aquasecurity/trivy/releases/download/v0.71.0/trivy_0.71.0_Linux-${TRIVY_ARCH}.tar.gz && \
     tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin/ trivy && \
     rm /tmp/trivy.tar.gz
 
