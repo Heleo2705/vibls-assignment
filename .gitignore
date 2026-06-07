@@ -1,4 +1,5 @@
-/deploy-api
+api
+worker
 /tmp/
 .env
 vendor/
