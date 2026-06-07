@@ -45,6 +45,8 @@ docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --build
 
 Wait ~2 minutes for k3s to initialize. Verify everything is up:
 
+📄 **Full end-to-end demo log available:** [`demo-end-to-end.txt`](./demo-end-to-end.txt) (306 lines — build, submit, pipeline stages, all 12 K8s resources, worker logs)
+
 ```bash
 docker compose -f docker/docker-compose.yml ps --services
 # Expected: api grafana k3s loki postgres prometheus promtail redis registry tempo worker
@@ -142,11 +144,29 @@ Tracks `status` (QUEUED → RUNNING → COMPLETED/FAILED) and `current_stage` (C
 | **APPLYING** | ~1s | k8s.io/client-go | Server-side apply to k3s, auto-create namespace |
 | **HEALTH_CHECKING** | ~30s | k8s.io/client-go | Poll pods until Ready, check service endpoints |
 
-## Generated Manifests (Example)
+## Generated Manifests
 
-When a job with ID `abc123` deploys to namespace `demo`, the following manifests are generated:
+When a job is submitted, the pipeline generates **12 Kubernetes resources**. Here's a summary of each (using job ID `abc123`, namespace `demo`):
 
-**deployment.yaml:**
+| Resource | Name | Purpose |
+|----------|------|---------|
+| Namespace | `demo` | Isolated environment |
+| ServiceAccount | `app-abc123` | Pod identity |
+| ConfigMap | `app-abc123-config` | App configuration (placeholder) |
+| Secret | `app-abc123-secret` | Sensitive data (placeholder) |
+| Deployment | `app-abc123` | Running pod with Docker image |
+| Service | `app-abc123-svc` | Internal ClusterIP on port 80 |
+| Ingress | `app-abc123-ingress` | External HTTP routing |
+| HorizontalPodAutoscaler | `app-abc123-hpa` | Auto-scale 1–5 at 80% CPU |
+| PodDisruptionBudget | `app-abc123-pdb` | Min 1 pod always available |
+| NetworkPolicy | `app-abc123-network-policy` | Restrict ingress to same-app pods + kubelet |
+| Role | `app-abc123-role` | Read access to pods, svc, configmaps |
+| RoleBinding | `app-abc123-rolebinding` | Binds Role to ServiceAccount |
+
+All resources include `app: app-abc123` and `managed-by: deploy-api` labels.
+
+Example — generated **deployment.yaml**:
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
@@ -166,6 +186,7 @@ spec:
       labels:
         app: app-abc123
     spec:
+      serviceAccountName: app-abc123
       containers:
       - name: app-abc123
         image: registry:5000/demo:abc123
@@ -179,12 +200,6 @@ spec:
             cpu: 500m
             memory: 256Mi
 ```
-
-**service.yaml:** ClusterIP service on port 80 → container port 8080.
-
-**ingress.yaml:** Ingress with host `example.local` (override via template data).
-
-**hpa.yaml:** HorizontalPodAutoscaler targeting 80% CPU, min 1, max 5 replicas.
 
 ## Observability
 
